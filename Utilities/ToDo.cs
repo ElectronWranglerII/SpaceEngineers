@@ -23,6 +23,8 @@ static string[] ActivityIndicator = {
 	"\\"
 };
 
+bool ShowActivity = true;
+
 string LCDQueuedName = "_ToDo_Queued";
 string LCDDoneName = "_ToDo_Done";
 string LCDOutput;
@@ -102,6 +104,10 @@ void Main(string Argument){
 	PBDisplay.WriteText(PBOutput);
 	
 	//Send results to LCDs
+	if(ShowActivity){
+		DoneOutput += ActivityIndicator[ActivityIndex];
+		QueuedOutput += ActivityIndicator[ActivityIndex];
+	}
 	foreach(var Display in QueueDisplay){
 		Display.ContentType = ContentType.TEXT_AND_IMAGE;
 		Display.Font = "Monospace";
