@@ -23,8 +23,6 @@ static string[] ActivityIndicator = {
 	"\\"
 };
 
-bool ShowActivity = true;
-
 string LCDQueuedName = "_ToDo_Queued";
 string LCDDoneName = "_ToDo_Done";
 string LCDOutput;
@@ -34,15 +32,42 @@ string PBOutput;
 
 List<IMyTextSurface> QueueDisplay;
 List<IMyTextSurface> DoneDisplay;
+List<string> DoneList;
+List<string> QueuedList;
 string QueuedOutput;
 string DoneOutput;
-string LCDContents;
+StringBuilder LCDContents;
 string[] Lines;
+int MarkerIndex;
 
 Program(){
 	//Append script name to programmable block's name
 	if(!Me.CustomName.Contains(ProgramSignature)){
 		Me.CustomName = Me.CustomName + ProgramSignature;
+	}
+	
+	DoneList = new List<string>();
+	QueuedList = new List<string>();
+	LCDContents = new StringBuilder();
+	DoneOutput = "Completed Tasks\n";
+	QueuedOutput = "Queued Tasks\n";
+	
+	DoneDisplay = NamedLCD(LCDDoneName);
+	QueueDisplay = NamedLCD(LCDQueuedName);
+
+	foreach(var Display in QueueDisplay){
+		Display.ContentType = ContentType.TEXT_AND_IMAGE;
+		Display.Font = "Monospace";
+		Display.FontColor = Color.Green;
+		Display.FontSize = 0.75f;
+		Display.WriteText(QueuedOutput);
+	}
+	foreach(var Display in DoneDisplay){
+		Display.ContentType = ContentType.TEXT_AND_IMAGE;
+		Display.Font = "Monospace";
+		Display.FontColor = Color.Green;
+		Display.FontSize = 0.75f;
+		Display.WriteText(DoneOutput);
 	}
 	
 	PBDisplay = (IMyTextSurface)(Me.GetSurface(0));
@@ -51,34 +76,73 @@ Program(){
 	Runtime.UpdateFrequency = UpdateFrequency.Update100;
 }
 
-void Main(string Argument){
+void Main(string Argument){	
 	//Read text from LCDs
-	DoneOutput = "Completed Tasks";
-	QueuedOutput = "Queued Tasks";
+	DoneList.Clear();
+	QueuedList.Clear();
+	
+	DoneOutput = "Completed Tasks\n";
+	QueuedOutput = "Queued Tasks\n";
 	
 	DoneDisplay = NamedLCD(LCDDoneName);
 	QueueDisplay = NamedLCD(LCDQueuedName);
 	
+	if(Argument.Length > 0 && Argument.ToUpper() == "CLEAR"){
+		Echo("Clearing Displays");
+		foreach(var Display in QueueDisplay){
+			Display.ContentType = ContentType.TEXT_AND_IMAGE;
+			Display.Font = "Monospace";
+			Display.FontColor = Color.Green;
+			Display.FontSize = 0.75f;
+			Display.WriteText(QueuedOutput);
+		}
+		foreach(var Display in DoneDisplay){
+			Display.ContentType = ContentType.TEXT_AND_IMAGE;
+			Display.Font = "Monospace";
+			Display.FontColor = Color.Green;
+			Display.FontSize = 0.75f;
+			Display.WriteText(DoneOutput);
+		}
+	}
+	
 	foreach(var Display in QueueDisplay){
 		Display.ReadText(LCDContents);
-		Lines = LCDContents.Split('\n');
+		Lines = LCDContents.ToString().Split('\n');
 		foreach(var Line in Lines){
-			if(!string.IsNullOrEmpty(Line) && Line.Substring(0, Line.IndexOf(']')).ToUpper().Replace(' ', string.Empty) == "[X]"){
-				DoneOutput = DoneOutput + Line + '\n';
-			}else{
-				QueuedOutput = QueuedOutput + Line + '\n';
+			if(!string.IsNullOrEmpty(Line)){
+				MarkerIndex = Line.IndexOf(']');
+				if(MarkerIndex > 0){
+					if(Line.Substring(0, MarkerIndex + 1).ToUpper().Replace(" ", string.Empty) == "[X]"){
+						if(!DoneList.Contains(Line)){
+							DoneList.Add(Line);
+						}
+					}else{
+						if(!QueuedList.Contains(Line)){
+							QueuedList.Add(Line);
+						}
+					}
+				}
 			}
 		}
 	}
 	
 	foreach(var Display in DoneDisplay){
 		Display.ReadText(LCDContents);
-		Lines = LCDContents.Split('\n');
+		Lines = LCDContents.ToString().Split('\n');
 		foreach(var Line in Lines){
-			if(!string.IsNullOrEmpty(Line) && Line.Substring(0, Line.IndexOf(']')).ToUpper().Replace(' ', string.Empty) == "[]"){
-				QueuedOutput = QueuedOutput + Line + '\n';
-			}else{
-				DoneOutput = DoneOutput + Line + '\n';
+			if(!string.IsNullOrEmpty(Line)){
+				MarkerIndex = Line.IndexOf(']');
+				if(MarkerIndex > 0){
+					if(Line.Substring(0, MarkerIndex + 1).ToUpper().Replace(" ", string.Empty) == "[]"){
+						if(!QueuedList.Contains(Line)){
+							QueuedList.Add(Line);
+						}
+					}else{
+						if(!DoneList.Contains(Line)){
+							DoneList.Add(Line);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -104,9 +168,11 @@ void Main(string Argument){
 	PBDisplay.WriteText(PBOutput);
 	
 	//Send results to LCDs
-	if(ShowActivity){
-		DoneOutput += ActivityIndicator[ActivityIndex];
-		QueuedOutput += ActivityIndicator[ActivityIndex];
+	for(int i = 0; i < DoneList.Count; i++){
+		DoneOutput += DoneList[i] + '\n';
+	}
+	for(int i = 0; i < QueuedList.Count; i++){
+		QueuedOutput += QueuedList[i] + '\n';
 	}
 	foreach(var Display in QueueDisplay){
 		Display.ContentType = ContentType.TEXT_AND_IMAGE;
