@@ -53,8 +53,8 @@ Program(){
 
 void Main(string Argument){
 	//Read text from LCDs
-	DoneOutput = string.Empty;
-	QueuedOutput = string.Empty;
+	DoneOutput = "Completed Tasks";
+	QueuedOutput = "Queued Tasks";
 	
 	DoneDisplay = NamedLCD(LCDDoneName);
 	QueueDisplay = NamedLCD(LCDQueuedName);
